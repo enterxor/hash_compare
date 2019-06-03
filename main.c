@@ -65,7 +65,7 @@ uint8_t add_num_to_ring_buf(struct flow_retr_info * _struct, uint32_t _num)
 #define MBUF_CACHE_SIZE 0
 #define BURST_SIZE 32
 #define HASH_SIZE 1000000
-
+#define ETHER_MAX_LEN 1512
 
 
 
@@ -132,7 +132,7 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
         return retval;
 
     /* Display the port MAC address. */
-    struct ether_addr addr;
+    struct rte_ether_addr addr;
     rte_eth_macaddr_get(port, &addr);
     printf("Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8
                " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n",
@@ -244,9 +244,9 @@ lcore_main(void)
 
             /* For each packet do the check */
             for (j = 0; j < nb_rx; j++) {
-                struct ether_hdr *eth_hdr;
-                struct ipv4_hdr * ip_hdr;
-                struct tcp_hdr * tcp_hdr;
+                struct rte_ether_hdr *eth_hdr;
+                struct rte_ipv4_hdr * ip_hdr;
+                struct rte_tcp_hdr * tcp_hdr;
                 struct rte_mbuf *m = bufs[j];
                 struct ipv4_5tuple key;
                 struct flow_retr_info *retr_info_data;
@@ -255,9 +255,9 @@ lcore_main(void)
                 total_packs ++;
 
                 /* Getting headers */
-                eth_hdr = rte_pktmbuf_mtod(m,struct ether_hdr *);
-                ip_hdr = rte_pktmbuf_mtod_offset(m, struct ipv4_hdr *,sizeof(struct ether_hdr));
-                tcp_hdr = rte_pktmbuf_mtod_offset(m, struct tcp_hdr *,sizeof(struct ether_hdr)+sizeof(struct ipv4_hdr));
+                eth_hdr = rte_pktmbuf_mtod(m,struct rte_ether_hdr *);
+                ip_hdr = rte_pktmbuf_mtod_offset(m, struct rte_ipv4_hdr *,sizeof(struct rte_ether_hdr));
+                tcp_hdr = rte_pktmbuf_mtod_offset(m, struct rte_tcp_hdr *,sizeof(struct rte_ether_hdr)+sizeof(struct rte_ipv4_hdr));
 
                 /* If packet is not ipv4 or not tcp, forward it */
                 if(eth_hdr->ether_type!= 0x08 || ip_hdr->next_proto_id != 0x6)
@@ -348,7 +348,7 @@ lcore_main(void)
 						//remember last timestamp
 						retr_info_data->last_timestamp = current_timestamp;
 						//calculate next expected timestamp
-						retr_info_data->expected_seq = htonl(tcp_hdr->sent_seq) + (htons(ip_hdr->total_length)- sizeof(struct ipv4_hdr) - ((tcp_hdr->data_off >> 4)*4));
+						retr_info_data->expected_seq = htonl(tcp_hdr->sent_seq) + (htons(ip_hdr->total_length)- sizeof(struct rte_ipv4_hdr) - ((tcp_hdr->data_off >> 4)*4));
 						//if flags syn or fin set, increment seq
 						if((tcp_hdr->tcp_flags&0x2)||(tcp_hdr->tcp_flags&0x1))
 						{
